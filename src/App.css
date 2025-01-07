@@ -1,0 +1,13 @@
+.App {
+    background-color: rgb(50, 48, 48);
+    color: brown;
+   
+}
+
+.button1 {
+    margin-left: 25%;
+    width:15%;
+    height: 15%;
+    background: gold;
+    border-radius: 15px;
+}
