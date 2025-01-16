@@ -3,10 +3,11 @@ import { useRef, useState } from 'react';
 import '@material/web/button/filled-button';
 import '@material/web/textfield/filled-text-field';
 import { geminiRun } from './components/gemini';
-import { createTheme, ThemeProvider, Paper, CssBaseline, Button, TextField } from '@mui/material';
+import { createTheme, ThemeProvider, Paper, CssBaseline, Button, TextField, Snackbar } from '@mui/material';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const theme = createTheme({
     palette: {
@@ -34,15 +35,25 @@ function App() {
       let index = 0;
       outputRef.current.value = "";
 
-      const intervalld = setInterval(() =>{
+      const intervalId = setInterval(() => {
         outputRef.current.value += response[index];
         index++;
-        if (index >= response.length ) {
-          clearInterval(intervalld);
+        if (index >= response.length) {
+          clearInterval(intervalId);
         }
       }, 25);
     }
   };
+
+  const handleCopyClick = () => {
+    if (outputRef.current) {
+      navigator.clipboard.writeText(outputRef.current.value)
+        .then(() => setCopySuccess(true))
+        .catch((err) => console.error('コピー失敗:', err));
+    }
+  };
+
+  const handleCloseSnackbar = () => setCopySuccess(false);
 
   return (
     <ThemeProvider theme={theme}>
@@ -85,7 +96,21 @@ function App() {
           variant="filled"
           fullWidth
           style={{ marginBottom: '10px' }}
-         disabled
+          disabled
+        />
+        <Button 
+          variant="contained" 
+          color="secondary" 
+          onClick={handleCopyClick}
+        >
+          回答をコピー
+        </Button>
+
+        <Snackbar
+          open={copySuccess}
+          autoHideDuration={2000}
+          onClose={handleCloseSnackbar}
+          message="コピーしました！"
         />
       </Paper>
     </ThemeProvider>
