@@ -31,7 +31,16 @@ function App() {
     const response = await geminiRun(inputText);
 
     if (outputRef.current) {
-      outputRef.current.value = response;
+      let index = 0;
+      outputRef.current.value = "";
+
+      const intervalld = setInterval(() =>{
+        outputRef.current.value += response[index];
+        index++;
+        if (index >= response.length ) {
+          clearInterval(intervalld);
+        }
+      }, 25);
     }
   };
 
@@ -39,7 +48,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Paper style={{ minHeight: '100vh', padding: '16px' }} elevation={3}>
-        <p>Geminiに聞きたいことはございませんか？</p>
+        <p>Gemini1.5に聞きたいことはございませんか？</p>
         <Button 
           variant="contained" 
           color="primary" 
@@ -49,11 +58,11 @@ function App() {
           {darkMode ? "ライトモードに切替" : "ダークモードに切替"}
         </Button>
         <br />
-        <Button 
-          variant="contained" 
-          color="secondary" 
+        <Button  
+          variant="outlined"
+          color="error"
           onClick={onButtonClick} 
-          style={{ marginBottom: '16px' }}
+          style={{ marginBottom: '10px' }}
         >
           プロンプトを送信
         </Button>
@@ -65,18 +74,18 @@ function App() {
           inputRef={inputRef}
           variant="filled"
           fullWidth
-          style={{ marginBottom: '16px' }}
+          style={{ marginBottom: '10px' }}
         />
         <p>Gemini1.5の回答</p>
+        <label>履歴は残らないのでコピペしてください。</label>
         <TextField
           multiline
-          rows={5}
+          rows={10}
           inputRef={outputRef}
           variant="filled"
           fullWidth
-           InputProps={{
-            readOnly: true,
-          }}
+          style={{ marginBottom: '10px' }}
+         disabled
         />
       </Paper>
     </ThemeProvider>
