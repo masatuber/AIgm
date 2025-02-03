@@ -4,8 +4,11 @@ import '@material/web/button/filled-button';
 import '@material/web/textfield/filled-text-field';
 import { geminiRun } from './components/gemini';
 import { createTheme, ThemeProvider, Paper, CssBaseline, Button, TextField, Snackbar } from '@mui/material';
+import Divider from '@mui/material/Divider';
+
 
 function App() {
+  
   const [darkMode, setDarkMode] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -13,17 +16,18 @@ function App() {
     palette: {
       mode: darkMode ? "dark" : "light",
       background: {
-        default: darkMode ? "#121212" : "#ffffff",
-        paper: darkMode ? "#1d1d1d" : "#f5f5f5",
+        default: darkMode ? "#201e1e" : "#ffffff",
+        paper: darkMode ? "#201e1e" : "#f5f5f5",
       },
       text: {
         primary: darkMode ? "#ffffff" : "#000000",
+        
       },
     },
   });
 
   const inputRef = useRef(null);
-  const outputRef = useRef(null);
+  const outputRef = useRef("");
 
   const onButtonClick = async () => {
     if (!inputRef.current) return;
@@ -41,7 +45,7 @@ function App() {
         if (index >= response.length) {
           clearInterval(intervalId);
         }
-      }, 25);
+      }, 23);
     }
   };
 
@@ -58,7 +62,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Paper style={{ minHeight: '100vh', padding: '16px' }} elevation={3}>
+      <Paper style={{ minHeight: '100vh', padding: '16px' }} elevation={1}>
         <p>Gemini1.5に聞きたいことはございませんか？</p>
         <Button 
           variant="contained" 
@@ -85,10 +89,12 @@ function App() {
           inputRef={inputRef}
           variant="filled"
           fullWidth
-          style={{ marginBottom: '10px' }}
+          style={{ marginBottom: '15px' }}
         />
         <p>Gemini1.5の回答</p>
+        <Divider />
         <label>履歴は残らないのでコピペしてください。</label>
+        
         <TextField
           multiline
           rows={10}
@@ -98,6 +104,7 @@ function App() {
           style={{ marginBottom: '10px' }}
           disabled
         />
+        
         <Button 
           variant="contained" 
           color="secondary" 
@@ -112,6 +119,12 @@ function App() {
           onClose={handleCloseSnackbar}
           message="コピーしました！"
         />
+        <br/>
+        <div className='link_html'>
+          <a href="https://openai.com/ja-JP/chatgpt/overview/" target="_blank" >GPTのリンクはこちら</a><br/>
+          <a href="https://prompt.quel.jp/" target="_blank" >プロンプト集のリンクはこちら</a><br/>
+          <a href="mailto:">メールソフト起動</a>
+        </div>
       </Paper>
     </ThemeProvider>
   );
