@@ -1,17 +1,23 @@
-import './App.css';
-import { useRef, useState } from 'react';
-import '@material/web/button/filled-button';
-import '@material/web/textfield/filled-text-field';
-import { geminiRun } from './components/gemini';
-import { createTheme, ThemeProvider, Paper, CssBaseline, Button, TextField, Snackbar } from '@mui/material';
+import './GeminiApp.css';
+import { useState } from 'react';
+import { createTheme, ThemeProvider, Paper, CssBaseline, Button, Stack, Snackbar, Link } from "@mui/material";
 import Divider from '@mui/material/Divider';
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import SendIcon from "@mui/icons-material/Send";
+import CopyAllIcon from "@mui/icons-material/CopyAll";
+import axios from "axios";
 
+const App = () => {
+  //API関連
+  const API_KEY = import.meta.env.VITE_API_KEY;
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
-function App() {
-  
+  const [messages, setMessages] = useState([]); // メッセージ履歴
+  const [input, setInput] = useState(""); // ユーザー入力
+  //const [loading, setLoading] = useState(false);
+  const [botTyping, setBotTyping] = useState(""); // ストリーミング表示用のテキスト
   const [darkMode, setDarkMode] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
-
+  const [copySuccess, setCopySuccess] = useState(false); // コピー成功時に Snackbar 表示用
   const theme = createTheme({
     palette: {
       mode: darkMode ? "dark" : "light",
@@ -21,113 +27,180 @@ function App() {
       },
       text: {
         primary: darkMode ? "#ffffff" : "#000000",
-        
       },
     },
   });
 
-  const inputRef = useRef(null);
-  const outputRef = useRef("");
+  const sendMessage = async () => {
+    if (!input.trim()) return;
 
-  const onButtonClick = async () => {
-    if (!inputRef.current) return;
+    // ユーザーのメッセージを追加
+    const newMessage = { role: "user", text: input };
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setInput("");
+    //  setLoading(true);
+    setBotTyping(""); // ボットの回答を初期化
 
-    const inputText = inputRef.current.value;
-    const response = await geminiRun(inputText);
+    try {
+      const response = await axios.post(API_URL, {
+        contents: [{ role: "user", parts: [{ text: input }] }],
+      });
 
-    if (outputRef.current) {
+      const replyText =
+        response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "エラー: 返信を取得できませんでした。";
+
+      // ストリーミング風に文字を一文字ずつ表示
       let index = 0;
-      outputRef.current.value = "";
-
-      const intervalId = setInterval(() => {
-        outputRef.current.value += response[index];
-        index++;
-        if (index >= response.length) {
-          clearInterval(intervalId);
+      const interval = setInterval(() => {
+        if (index < replyText.length) {
+          setBotTyping((prev) => prev + replyText[index]); // 一文字ずつ追加
+          index++;
+        } else {
+          clearInterval(interval); // 全文が表示されたら停止
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { role: "bot", text: replyText },
+          ]);
+          setBotTyping(""); // 最後に botTyping をクリア
         }
-      }, 23);
+      }, 15); // 15msごとに1文字表示
+    } catch (error) {
+      console.error("API Error:", error);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { role: "bot", text: "エラー: APIリクエストに失敗しました。" },
+      ]);
+      //  } finally {
+      //    setLoading(false);
     }
   };
 
-  const handleCopyClick = () => {
-    if (outputRef.current) {
-      navigator.clipboard.writeText(outputRef.current.value)
-        .then(() => setCopySuccess(true))
-        .catch((err) => console.error('コピー失敗:', err));
+  // 最新の回答テキストをクリップボードにコピーする関数を追加
+  const copyAnswerToClipboard = () => {
+    // 最新の bot のメッセージを取得
+    const lastBotMessage = [...messages]
+      .reverse()
+      .find((msg) => msg.role === "bot");
+    if (lastBotMessage && lastBotMessage.text) {
+      // Clipboard API を使用してテキストをコピー
+      navigator.clipboard
+        .writeText(lastBotMessage.text)
+        .then(() => {
+          // コピー成功時に Snackbar を表示
+          setCopySuccess(true);
+        })
+        .catch((err) => {
+          console.error("クリップボードへのコピーに失敗しました:", err);
+        });
+    } else {
+      console.warn("コピーする回答テキストがありません。");
     }
   };
 
-  const handleCloseSnackbar = () => setCopySuccess(false);
+  // Snackbar の閉じる処理
+  const handleSnackbarClose = () => {
+    setCopySuccess(false);
+  };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Paper style={{ minHeight: '100vh', padding: '16px' }} elevation={1}>
-        <p>Gemini1.5に聞きたいことはございませんか？</p>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={() => setDarkMode((prevMode) => !prevMode)}
-          style={{ marginBottom: '16px' }}
-        >
-          {darkMode ? "ライトモードに切替" : "ダークモードに切替"}
-        </Button>
-        <br />
-        <Button  
-          variant="outlined"
-          color="error"
-          onClick={onButtonClick} 
-          style={{ marginBottom: '10px' }}
-        >
-          プロンプトを送信
-        </Button>
-        <br />
-        <TextField
-          label="質問を入力"
-          multiline
-          rows={5}
-          inputRef={inputRef}
-          variant="filled"
-          fullWidth
-          style={{ marginBottom: '15px' }}
-        />
-        <p>Gemini1.5の回答</p>
-        <Divider />
-        <label>履歴は残らないのでコピペしてください。</label>
-        
-        <TextField
-          multiline
-          rows={10}
-          inputRef={outputRef}
-          variant="filled"
-          fullWidth
-          style={{ marginBottom: '10px' }}
-          disabled
-        />
-        
-        <Button 
-          variant="contained" 
-          color="secondary" 
-          onClick={handleCopyClick}
-        >
-          回答をコピー
-        </Button>
-
-        <Snackbar
-          open={copySuccess}
-          autoHideDuration={2000}
-          onClose={handleCloseSnackbar}
-          message="コピーしました！"
-        />
-        <br/>
-        <div className='link_html'>
-          <a href="https://openai.com/ja-JP/chatgpt/overview/" target="_blank" >GPTのリンクはこちら</a><br/>
-          <a href="https://prompt.quel.jp/" target="_blank" >プロンプト集のリンクはこちら</a><br/>
-          <a href="mailto:">メールソフト起動</a>
-        </div>
-      </Paper>
-    </ThemeProvider>
+    <div>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Paper style={{ minHeight: "100vh", padding: "16px" }} elevation={1}>
+          <p>Gemini ChatBot 1.5flashに聞きたい事はございませんか？</p>
+          <DarkModeIcon
+            onClick={() => setDarkMode((prevMode) => !prevMode)}
+            style={{ cursor: "pointer" }}
+          />
+          <div
+            style={{
+              height: "500px",
+              overflowY: "auto",
+              border: "1px solid #ccc",
+              padding: "10px",
+            }}
+          >
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                style={{ textAlign: msg.role === "user" ? "right" : "left" }}
+              >
+                <strong>{msg.role === "user" ? "ユーザー" : "回答"}:</strong>{" "}
+                <Divider />
+                {msg.text}
+              </div>
+            ))}
+            {/* ストリーミング中のテキスト表示 */}
+            {botTyping && (
+              <div style={{ textAlign: "left", fontStyle: "italic" }}>
+                <br />
+                <Divider />
+                <strong>回答:</strong> {botTyping}
+              </div>
+            )}
+          </div>
+          <div style={{ marginTop: "10px" }}>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="質問を入力"
+              style={{ width: "80%", padding: "5px" }}
+            />
+            <Stack direction="row" spacing={2}>
+              <Button
+                onClick={sendMessage}
+                variant="contained"
+                color="success"
+                endIcon={<SendIcon />}
+              >
+                プロンプト送信
+              </Button>
+              {/* 回答テキストをクリップボードにコピーするボタンを追加 */}
+              <Button
+                onClick={copyAnswerToClipboard}
+                variant="outlined"
+                color="primary"
+                startIcon={<CopyAllIcon />}
+              >
+                回答コピー
+              </Button>
+            </Stack>
+            {/* Snackbar コンポーネント: コピー成功時の通知 */}
+            <Snackbar
+              open={copySuccess}
+              autoHideDuration={3000}
+              onClose={handleSnackbarClose}
+              message="回答がクリップボードにコピーされました"
+            />
+          </div>
+          <div className="linkCss">
+            <Link
+              href="https://openai.com/ja-JP/chatgpt/overview/"
+              target="_blank"
+              underline="none"
+              color="secondary"
+            >
+              Chat GPTのリンクはこちら
+            </Link>
+            <br />
+            <Link
+              href="https://prompt.quel.jp/"
+              target="_blank"
+              underline="none"
+              color="secondary"
+            >
+              プロンプト集のリンクはこちら
+            </Link>
+            <br />
+            <Link href="mailto:" underline="none" color="inherit">
+              メールソフト起動(宛先なし)
+            </Link>
+          </div>
+        </Paper>
+      </ThemeProvider>
+    </div>
   );
-}
+};
 
 export default App;
