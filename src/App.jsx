@@ -8,9 +8,9 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 import axios from "axios";
 
 const App = () => {
-  //API関連
+  //API関連2.0安定版に更新
   const API_KEY = import.meta.env.VITE_API_KEY;
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${API_KEY}`;
 
   const [messages, setMessages] = useState([]); // メッセージ履歴
   const [input, setInput] = useState(""); // ユーザー入力
@@ -108,7 +108,7 @@ const App = () => {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Paper style={{ minHeight: "100vh", padding: "16px" }} elevation={1}>
-          <p>Gemini ChatBot 1.5flashに聞きたい事はございませんか？</p>
+          <p>Gemini ChatBot 2.0flashに聞きたい事はございませんか？</p>
           <DarkModeIcon
             onClick={() => setDarkMode((prevMode) => !prevMode)}
             style={{ cursor: "pointer" }}
